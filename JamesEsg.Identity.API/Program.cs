@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://0.0.0.0:8089");
 
 // Add services to the container.
 
@@ -33,30 +34,36 @@ builder.Services.AddIdentity<ApiUser, IdentityRole>(options =>
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddAuthentication(options => 
-{  
-    options.DefaultAuthenticateScheme =  
-        options.DefaultChallengeScheme =  
-            options.DefaultForbidScheme =  
-                options.DefaultScheme =  
-                    options.DefaultSignInScheme =  
-                        options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;  
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme =
+        options.DefaultChallengeScheme =
+            options.DefaultForbidScheme =
+                options.DefaultScheme =
+                    options.DefaultSignInScheme =
+                        options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
-{  
+{
     options.TokenValidationParameters = new TokenValidationParameters()
-    { 
-        ValidateIssuer = true,  
-        ValidIssuer = builder.Configuration["JWT:Issuer"],  
-        ValidateAudience = true,  
-        ValidAudience = builder.Configuration["JWT:Audience"],  
-        ValidateIssuerSigningKey = true,  
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]!))  
+    {
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["JWT:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JWT:Audience"],
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]!))
     };
 });
 
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
